@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page IA Pro</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .card { max-width: 600px; width: 100%; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { color: #1e293b; text-align: center; margin-bottom: 25px; }
+        
+        .field-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #475569; font-size: 0.9rem; }
+        
+        input[type="password"], input[type="text"], select { 
+            width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;
+        }
+
+        .slider-container { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .slider-info { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+
+        button { 
+            width: 100%; padding: 15px; background: var(--primary); color: white; border: none; 
+            border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: #1d4ed8; transform: translateY(-2px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        #output { 
+            margin-top: 25px; padding: 20px; border-radius: 8px; background: #fdfdfd; 
+            border: 1px solid #e2e8f0; display: none; line-height: 1.6; color: #334155;
+        }
+        .loader { display: none; text-align: center; margin-top: 15px; color: var(--primary); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🚀 Consultor de Produtos IA</h1>
+    
+    <div class="field-group">
+        <label>OpenRouter API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+    </div>
+
+    <div class="field-group">
+        <label>Selecione o Produto</label>
+        <select id="produto">
+            <option value="Drone de Entrega Pessoal: Um drone que carrega até 5kg e segue o dono.">Drone Follow-Me</option>
+            <option value="Smart Coffee Mug: Mantém o café na temperatura exata via app.">Caneca Térmica Inteligente</option>
+            <option value="Teclado Holográfico: Projeta um teclado em qualquer superfície plana.">Projetor de Teclado Laser</option>
+        </select>
+    </div>
+
+    <div class="field-group">
+        <div class="slider-container">
+            <div class="slider-info">
+                <span>Criatividade (Temperatura)</span>
+                <span id="tempVal">0.7</span>
+            </div>
+            <input type="range" id="temp" min="0" max="2" step="0.1" value="0.7" 
+                   oninput="document.getElementById('tempVal').innerText = this.value">
+        </div>
+    </div>
+
+    <div class="field-group">
+        <div class="slider-container">
+            <div class="slider-info">
+                <span>Tamanho Máximo (Tokens)</span>
+                <span id="tokenVal">150</span>
+            </div>
+            <input type="range" id="tokens" min="50" max="1000" step="50" value="150" 
+                   oninput="document.getElementById('tokenVal').innerText = this.value">
+        </div>
+    </div>
+
+    <button id="btnEnviar" onclick="gerarDescricao()">Gerar Descrição Persuasiva</button>
+
+    <div id="loader" class="loader">Analisando especificações...</div>
+    <div id="output"></div>
+</div>
+
+<script>
+    async function gerarDescricao() {
+        const apiKey = document.getElementById('apiKey').value;
+        const produto = document.getElementById('produto').value;
+        const temperatura = parseFloat(document.getElementById('temp').value);
+        const maxTokens = parseInt(document.getElementById('tokens').value);
+        
+        const output = document.getElementById('output');
+        const loader = document.getElementById('loader');
+        const btn = document.getElementById('btnEnviar');
+
+        if (!apiKey) {
+            alert("Por favor, insira sua Chave de API!");
+            return;
+        }
+
+        // UI State
+        btn.disabled = true;
+        loader.style.display = "block";
+        output.style.display = "none";
+
+        try {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "model": "openrouter/auto",
+                    "temperature": temperatura,
+                    "max_tokens": maxTokens,
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": "Você é um especialista em marketing tech. Escreva descrições curtas e impactantes.Responda obrigatoriamente em português"
+                        },
+                        {
+                            "role": "user", 
+                            "content": `Crie uma descrição para o produto: ${produto}`
+                        }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            const textoResiduo = data.choices[0].message.content;
+            output.innerHTML = `<strong>Análise da IA:</strong><br>${textoResiduo}`;
+            output.style.display = "block";
+
+        } catch (error) {
+            alert("Erro na requisição: " + error.message);
+        } finally {
+            btn.disabled = false;
+            loader.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
